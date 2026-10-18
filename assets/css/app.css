@@ -1,0 +1,105 @@
+/* Front Office — application tweaks on top of Bootstrap */
+
+/* Big dashboard clock */
+.of-clock {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
+}
+
+.of-clock-time {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.of-clock-date {
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
+    color: var(--bs-secondary-color);
+}
+
+/* Dashboard action buttons */
+.of-action-btn {
+    min-height: 96px;
+    font-size: 1.05rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.of-action-btn i {
+    font-size: 1.8rem;
+}
+
+/* Mandatory field marker */
+.of-required {
+    color: var(--bs-danger);
+}
+
+/* Read-only result boxes keep the same look as editable fields */
+.form-control-plaintext.of-readonly {
+    min-height: calc(1.5em + .75rem + 2px);
+    padding: .375rem .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background-color: rgba(0, 0, 0, .03);
+}
+
+/* Login page */
+.of-auth-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+}
+
+/* Department tree */
+.of-tree ul {
+    list-style: none;
+    padding-inline-start: 1.25rem;
+    margin: 0;
+}
+
+.of-tree > ul {
+    padding-inline-start: 0;
+}
+
+/* User dropdown (navbar): width adapts to content, all links on one line */
+.of-user-menu {
+    display: none;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem;
+    margin-top: 0.25rem;
+}
+
+.of-user-menu.show {
+    display: flex;
+}
+
+.of-user-menu .dropdown-item {
+    white-space: nowrap;
+    border-radius: 0.375rem;
+    padding: 0.35rem 0.75rem;
+}
+
+.of-user-toggle:hover,
+.of-user-toggle:focus {
+    text-decoration: none;
+}
+
+/* Print: hide chrome, show only report tables */
+@media print {
+    nav, footer, .of-no-print, .btn {
+        display: none !important;
+    }
+
+    main.container {
+        max-width: none !important;
+    }
+
+    body {
+        background: #fff !important;
+    }
+}
