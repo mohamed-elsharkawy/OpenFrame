@@ -21,6 +21,7 @@ if (!defined('DB_NAME'))    { define('DB_NAME', 'openframe'); }
 if (!defined('DB_USER'))    { define('DB_USER', 'root'); }
 if (!defined('DB_PASS'))    { define('DB_PASS', ''); }
 if (!defined('DB_CHARSET')) { define('DB_CHARSET', 'utf8mb4'); }
+if (!defined('DB_PREFIX'))  { define('DB_PREFIX', 'opf_'); }
 
 /**
  * The shared PDO connection.
@@ -53,7 +54,7 @@ function db()
             '<h1>Database connection failed</h1>'
             . '<p>Could not connect to <strong>' . e(DB_NAME) . '</strong> on <strong>'
             . e(DB_HOST . ':' . DB_PORT) . '</strong>.</p>'
-            . '<p>Create the database by importing <code>database.sql</code>, then check the '
+            . '<p>Create the database by importing <code>schema.sql</code>, then check the '
             . 'credentials in <code>includes/config.php</code>.</p>'
             . '<p>Error: ' . e($ex->getMessage()) . '</p>'
         );
@@ -79,6 +80,19 @@ function db_ident($name)
     }
 
     return '`' . $name . '`';
+}
+
+/**
+ * Quote and validate a table name with the configured DB_PREFIX applied.
+ *
+ * All CRUD helpers route table names through this function so that the
+ * prefix (default "opf_") is consistently prepended.
+ *
+ * @return string  e.g. `opf_users`
+ */
+function db_table($name)
+{
+    return db_ident(DB_PREFIX . (string) $name);
 }
 
 /**
@@ -175,7 +189,7 @@ function db_insert($table, array $data)
     }
 
     db_exec(
-        'INSERT INTO ' . db_ident($table)
+        'INSERT INTO ' . db_table($table)
         . ' (' . implode(', ', $columns) . ')'
         . ' VALUES (' . implode(', ', $marks) . ')',
         $params
@@ -208,7 +222,7 @@ function db_update($table, array $data, $where = '', array $whereParams = array(
         $params[] = $value;
     }
 
-    $sql = 'UPDATE ' . db_ident($table) . ' SET ' . implode(', ', $set);
+    $sql = 'UPDATE ' . db_table($table) . ' SET ' . implode(', ', $set);
 
     if ($where !== '' && $where !== null) {
         $sql .= ' WHERE ' . $where;
@@ -228,7 +242,7 @@ function db_update($table, array $data, $where = '', array $whereParams = array(
  */
 function db_delete($table, $where = '', array $params = array())
 {
-    $sql = 'DELETE FROM ' . db_ident($table);
+    $sql = 'DELETE FROM ' . db_table($table);
 
     if ($where !== '' && $where !== null) {
         $sql .= ' WHERE ' . $where;
@@ -248,7 +262,7 @@ function db_delete($table, $where = '', array $params = array())
 function db_find($table, $id, $key = 'id')
 {
     return db_row(
-        'SELECT * FROM ' . db_ident($table) . ' WHERE ' . db_ident($key) . ' = ? LIMIT 1',
+        'SELECT * FROM ' . db_table($table) . ' WHERE ' . db_ident($key) . ' = ? LIMIT 1',
         array($id)
     );
 }
@@ -262,7 +276,7 @@ function db_find($table, $id, $key = 'id')
  */
 function db_exists($table, $where = '', array $params = array())
 {
-    $sql = 'SELECT 1 FROM ' . db_ident($table);
+    $sql = 'SELECT 1 FROM ' . db_table($table);
 
     if ($where !== '' && $where !== null) {
         $sql .= ' WHERE ' . $where;
@@ -283,7 +297,7 @@ function db_exists($table, $where = '', array $params = array())
  */
 function db_count($table, $where = '', array $params = array())
 {
-    $sql = 'SELECT COUNT(*) FROM ' . db_ident($table);
+    $sql = 'SELECT COUNT(*) FROM ' . db_table($table);
 
     if ($where !== '' && $where !== null) {
         $sql .= ' WHERE ' . $where;
@@ -374,7 +388,7 @@ function db_next_id($table)
         return (int) $row['next_id'];
     }
 
-    $max = db_row('SELECT MAX(id) AS max_id FROM ' . db_ident($table));
+    $max = db_row('SELECT MAX(id) AS max_id FROM ' . db_table($table));
 
     return $max && $max['max_id'] !== null ? ((int) $max['max_id'] + 1) : 1;
 }

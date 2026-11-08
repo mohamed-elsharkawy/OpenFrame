@@ -1,0 +1,92 @@
+/* OpenFrame — RTL overrides (offline) */
+/* Applied automatically when [dir="rtl"] */
+
+/* Base direction */
+[dir="rtl"] {
+    direction: rtl;
+}
+
+/* Text alignment */
+[dir="rtl"] .text-start { text-align: right !important; }
+[dir="rtl"] .text-end   { text-align: left !important; }
+
+/* Floats */
+[dir="rtl"] .float-start { float: right !important; }
+[dir="rtl"] .float-end   { float: left !important; }
+
+/* Padding — horizontal */
+[dir="rtl"] .ps-3 { padding-right: 1rem !important; padding-left: 0 !important; }
+[dir="rtl"] .pe-3 { padding-left: 1rem !important; padding-right: 0 !important; }
+[dir="rtl"] .ps-4 { padding-right: 1.5rem !important; padding-left: 0 !important; }
+[dir="rtl"] .pe-4 { padding-left: 1.5rem !important; padding-right: 0 !important; }
+
+/* Dropdown alignment — open from right in RTL */
+[dir="rtl"] .dropdown-menu {
+    left: auto !important;
+    right: 0 !important;
+}
+
+/* Text inputs align right in RTL */
+[dir="rtl"] .form-control {
+    text-align: right;
+}
+
+/* Form labels align right in RTL */
+[dir="rtl"] .form-label {
+    text-align: right;
+}
+
+/* Button groups in RTL */
+[dir="rtl"] .btn-group {
+    flex-direction: row-reverse;
+}
+
+/* Alert close button position in RTL */
+[dir="rtl"] .alert-dismissible .btn-close {
+    left: 0;
+    right: auto;
+}
+
+/* Table text alignment in RTL */
+[dir="rtl"] table {
+    text-align: right;
+}
+
+/* Main content padding in RTL */
+[dir="rtl"] main.container {
+    padding-right: 1rem;
+    padding-left: 1rem;
+}
+
+/* Sidemenu backdrop covers full width */
+[dir="rtl"] .of-sidemenu-backdrop {
+    left: 0;
+    right: 0;
+}
+
+/* Offcanvas/sidemenu positioning */
+[dir="rtl"] .of-sidemenu-wrap {
+    left: auto !important;
+    right: 0 !important;
+}
+
+/* Footer: Reverse icon order when icon precedes text */
+[dir="rtl"] .of-footer .bi.me-1 {
+    margin-left: 0.5rem !important;
+    margin-right: 0 !important;
+}
+
+/* Navbar brand — put icon after text in RTL */
+[dir="rtl"] .navbar-brand {
+    flex-direction: row-reverse;
+}
+
+/* Ensure dropdown items align properly in RTL */
+[dir="rtl"] .dropdown-menu {
+    text-align: right;
+}
+
+/* Fix any z-index or stacking issues */
+[dir="rtl"] .of-sidemenu-wrap {
+    z-index: 1030 !important;
+}

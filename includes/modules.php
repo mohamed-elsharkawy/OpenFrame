@@ -60,7 +60,11 @@ function get_modules()
             array(
                 'slug'        => $slug,
                 'name'        => ucwords(str_replace(array('-', '_'), ' ', $slug)),
+                'name_en'     => ucwords(str_replace(array('-', '_'), ' ', $slug)),
+                'name_ar'     => ucwords(str_replace(array('-', '_'), ' ', $slug)),
                 'description' => '',
+                'description_en' => '',
+                'description_ar' => '',
                 'version'     => '1.0.0',
                 'icon'        => 'bi-puzzle',
                 'enabled'     => true,
@@ -68,6 +72,23 @@ function get_modules()
             ),
             $info
         );
+
+        // Resolve bilingual name based on current language
+        $lang = $_SESSION['lang'] ?? 'en';
+        if ($lang === 'ar' && !empty($module['name_ar'])) {
+            $module['name'] = $module['name_ar'];
+            $module['description'] = !empty($module['description_ar']) ? $module['description_ar'] : $module['description_en'];
+        } else {
+            $module['name'] = !empty($module['name_en']) ? $module['name_en'] : $module['name'];
+            $module['description'] = !empty($module['description_en']) ? $module['description_en'] : $module['description'];
+        }
+
+        // Resolve bilingual group name based on current language
+        if ($lang === 'ar' && !empty($module['group_ar'])) {
+            $module['group'] = $module['group_ar'];
+        } else {
+            $module['group'] = !empty($module['group_en']) ? $module['group_en'] : $module['group'];
+        }
 
         // The folder name is the canonical slug used for routing.
         $module['slug']   = $slug;
@@ -115,4 +136,50 @@ function enabled_modules()
     }
 
     return $enabled;
+}
+
+/**
+ * Return enabled modules organized by their "group" field (used by the sidemenu).
+ *
+ * Modules without a group (empty 'group' value) are placed under the null key
+ * and rendered as ungrouped items (not inside a dropdown).
+ * If a group does not exist yet it is created; otherwise the module is added
+ * to the existing group.
+ *
+ * @return array<string|int,array<string,array>> group => slug => module.
+ *   Use null key for ungrouped modules.
+ */
+function get_modules_by_group()
+{
+    $groups = array();
+    $ungrouped = array();
+
+    foreach (enabled_modules() as $slug => $module) {
+        $group = !empty($module['group']) ? (string) $module['group'] : null;
+
+        if ($group === null) {
+            $ungrouped[$slug] = $module;
+        } else {
+            if (!isset($groups[$group])) {
+                $groups[$group] = array();
+            }
+
+            $groups[$group][$slug] = $module;
+        }
+    }
+
+    // Sort groups: "System Configuration" / "إعدادات النظام" first, then alphabetically
+    uksort($groups, function ($a, $b) {
+        $aIsSystem = ($a === 'System Configuration' || $a === 'إعدادات النظام');
+        $bIsSystem = ($b === 'System Configuration' || $b === 'إعدادات النظام');
+        if ($aIsSystem && !$bIsSystem) {
+            return -1;
+        }
+        if (!$aIsSystem && $bIsSystem) {
+            return 1;
+        }
+        return strcmp($a, $b);
+    });
+
+    return array('ungrouped' => $ungrouped, 'groups' => $groups);
 }

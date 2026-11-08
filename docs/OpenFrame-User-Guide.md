@@ -1,5 +1,7 @@
 # OpenFrame — User Guide
 
+> **Current API and install:** see [README.md](../README.md) and [DEVELOPER.md](DEVELOPER.md). OpenFrame now ships with login, roles, TOTP for admins, English/Arabic, and a Users module. This guide remains a step-by-step tutorial; when a recipe disagrees with the README, follow the README.
+
 <!-- cover -->
 
 # About this guide
