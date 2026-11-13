@@ -18,10 +18,11 @@ if (!defined('OPENFRAME')) {
 /* ------------------------------------------------------------------
  * Language / RTL
  * ------------------------------------------------------------------ */
+$app_session_lang = app_session_get('lang', OPENFRAME_DEFAULT_LANG);
 $availableLangs = get_available_languages();
-$isRtl          = (($_SESSION['lang'] ?? 'en') === 'ar');
+$isRtl          = ($app_session_lang === 'ar');
 $htmlDir        = $isRtl ? 'rtl' : 'ltr';
-$htmlLang       = $_SESSION['lang'] ?? 'en';
+$htmlLang       = $app_session_lang;
 
 /* ------------------------------------------------------------------
  * Layout variables

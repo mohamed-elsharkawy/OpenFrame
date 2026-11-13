@@ -20,5 +20,6 @@ return [
     'group_ar'       => '',
     'group'          => '',
     'menu'           => true,
+    'submenu'        => true,
     'author'         => 'OpenFrame',
 ];

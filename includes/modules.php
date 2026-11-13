@@ -69,12 +69,14 @@ function get_modules()
                 'icon'        => 'bi-puzzle',
                 'enabled'     => true,
                 'order'       => 100,
+                'menu'        => true,
+                'submenu'     => true,
             ),
             $info
         );
 
         // Resolve bilingual name based on current language
-        $lang = $_SESSION['lang'] ?? 'en';
+        $lang = app_session_get('lang', OPENFRAME_DEFAULT_LANG);
         if ($lang === 'ar' && !empty($module['name_ar'])) {
             $module['name'] = $module['name_ar'];
             $module['description'] = !empty($module['description_ar']) ? $module['description_ar'] : $module['description_en'];
@@ -136,6 +138,85 @@ function enabled_modules()
     }
 
     return $enabled;
+}
+
+/**
+ * Load groups visibility/configuration from includes/groups.php.
+ *
+ * @return array<string,array> key => group config
+ */
+function get_groups_config()
+{
+    static $cache = null;
+
+    if ($cache !== null) {
+        return $cache;
+    }
+
+    $base = defined('OPENFRAME_PATH') ? OPENFRAME_PATH : dirname(__DIR__);
+    $file = $base . '/includes/groups.php';
+
+    if (is_file($file)) {
+        $loaded = include $file;
+        $cache = is_array($loaded) ? $loaded : array();
+    } else {
+        $cache = array();
+    }
+
+    return $cache;
+}
+
+/**
+ * Find a group config entry by its displayed/localized name.
+ *
+ * Matches against key, name_en, and name_ar.
+ *
+ * @param string $groupName
+ * @return array|null
+ */
+function find_group_config($groupName)
+{
+    $groupName = (string) $groupName;
+
+    foreach (get_groups_config() as $key => $group) {
+        if ($key === $groupName) {
+            return $group;
+        }
+        if (isset($group['name_en']) && (string) $group['name_en'] === $groupName) {
+            return $group;
+        }
+        if (isset($group['name_ar']) && (string) $group['name_ar'] === $groupName) {
+            return $group;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Whether a module group should be shown in the NavBar.
+ * If no config exists for the group, defaults to visible.
+ */
+function is_group_visible_in_menu($groupName)
+{
+    $group = find_group_config($groupName);
+    if ($group === null) {
+        return true;
+    }
+    return !empty($group['menu']);
+}
+
+/**
+ * Whether a module group should be shown in the Side menu.
+ * If no config exists for the group, defaults to visible.
+ */
+function is_group_visible_in_submenu($groupName)
+{
+    $group = find_group_config($groupName);
+    if ($group === null) {
+        return true;
+    }
+    return !empty($group['submenu']);
 }
 
 /**

@@ -113,6 +113,14 @@ mysql -h 127.0.0.1 -u root -p -e "CREATE DATABASE IF NOT EXISTS openframe CHARAC
 mysql -h 127.0.0.1 -u root -p openframe < schema.sql
 ```
 
+`schema.sql` includes the full reference data: **250 countries** and **~209,000
+populated places**. Country names come from
+[umpirsky/country-list](https://github.com/umpirsky/country-list) (CLDR); city
+names come from [GeoNames](https://www.geonames.org/) `cities500`
+([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Arabic city names
+are taken from the GeoNames alternate names when a standard-Arabic name exists,
+otherwise the English name is used.
+
 Change `ENCRYPTION_KEY` in `includes/config.php` before going to production.
 
 ### 3.3 Open it
@@ -561,13 +569,18 @@ Internal `qr_*` helpers implement ECC, masks and drawing. Application code shoul
 
 ## 11. Authentication, roles and OTP
 
-1. Guest hits any module → redirected to `$_SESSION['landing_page']` (default `login`).
+1. Guest hits any module → redirected to the landing page (`app_session_get('landing_page')`, default `login`).
 2. Login checks `username` + `decrypt_password(password_hash)`.
 3. **user** → `otp_finish_login()` → home.
 4. **admin / superadmin** → OTP module. First time: QR + secret. Later: 6-digit code.
 5. Superadmin can reset any user's OTP from **Users** (clears `otp_secret` and `otp_enabled`).
 
 Session keys after a full login: `user_id`, `user_level`, `user_name`, `otp_verified`.
+
+All session data is stored per application under the nested array
+`$_SESSION['openframe_apps'][OPENFRAME_APP_KEY]` (key defaults to the app's URL
+path), so multiple OpenFrame apps on the same server never share state. Access
+it only through the `app_session_*` helpers — see `docs/DEVELOPER.md` §5.0.
 
 ---
 

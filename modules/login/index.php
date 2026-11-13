@@ -8,7 +8,7 @@ require_framework();
 
 // If already logged in, redirect to landing page
 if (current_user()) {
-    $landing = $_SESSION['landing_page'] ?? 'login';
+    $landing = app_session_get('landing_page', 'login');
     if ($landing !== 'login') {
         redirect(url('index.php?module=' . $landing));
     }
@@ -38,22 +38,17 @@ if (is_post() && input('action') === 'login') {
             session_regenerate_id(true);
 
             if (otp_is_privileged($user)) {
-                unset(
-                    $_SESSION['user_id'],
-                    $_SESSION['user_level'],
-                    $_SESSION['user_name'],
-                    $_SESSION['otp_verified']
-                );
-                $_SESSION['otp_pending_user_id'] = (int) $user['id'];
-                $_SESSION['otp_attempts'] = 0;
-                unset($_SESSION['otp_setup_secret']);
+                app_session_forget('user_id', 'user_level', 'user_name', 'otp_verified');
+                app_session_set('otp_pending_user_id', (int) $user['id']);
+                app_session_set('otp_attempts', 0);
+                app_session_forget('otp_setup_secret');
                 redirect(url('index.php?module=otp'));
             }
 
             otp_finish_login($user);
             flash('success', lang('msg.welcome_back', 'Welcome back.'));
 
-            $landing = $_SESSION['landing_page'] ?? 'login';
+            $landing = app_session_get('landing_page', 'login');
             if ($landing === 'login') {
                 $landing = 'home';
             }
@@ -96,7 +91,7 @@ if (is_post() && input('action') === 'login') {
                     </div>
 
                     <div class="d-grid gap-2">
-                        <button class="btn btn-primary" type="submit"><?php echo e(lang('common.save', 'Sign in')); ?></button>
+                        <button class="btn btn-primary" type="submit"><?php echo e(lang('login.signin', 'Sign in')); ?></button>
                     </div>
                 </form>
 

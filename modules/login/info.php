@@ -20,5 +20,6 @@ return [
     'group_ar'       => 'إعدادات النظام',
     'group'          => 'System Configuration',
     'menu'           => false,
+    'submenu'        => false,
     'author'         => 'OpenFrame',
 ];

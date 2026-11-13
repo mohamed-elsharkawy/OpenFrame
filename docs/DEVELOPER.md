@@ -447,6 +447,41 @@ Reads `information_schema` (or `MAX(id)+1`) so you can preview a record number b
 
 ## 5. Helpers — `includes/helpers.php`
 
+### 5.0 Per-app session namespace
+
+The server may host several OpenFrame applications at once, and they all share
+the browser's session cookie. To keep their data apart, nothing is ever stored
+in a top-level `$_SESSION` key. Everything lives in a nested array:
+
+```
+$_SESSION['openframe_apps'][OPENFRAME_APP_KEY][...]
+```
+
+`OPENFRAME_APP_KEY` defaults to the application's URL path (e.g. `/openframe`,
+or `root` at the webroot) and can be forced by defining it before
+`includes/config.php` is included. Two apps on the same server therefore never
+overwrite each other's login, language, flash or CSRF state.
+
+Use these helpers (defined in `includes/config.php`) instead of touching
+`$_SESSION` directly:
+
+| Helper | Purpose |
+| --- | --- |
+| `app_session_get($key, $default)` | Read a value from this app's namespace |
+| `app_session_set($key, $value)` | Write a value |
+| `app_session_has($key)` | TRUE when the key exists |
+| `app_session_forget(...$keys)` | Remove one or more keys |
+| `app_session_all()` | Copy of this app's whole namespace |
+| `app_session_flush()` | Remove ALL of this app's keys (other apps unaffected) |
+
+```php
+app_session_set('cart', []);
+$count = app_session_get('cart_count', 0);
+```
+
+An automatic one-time migration moves legacy flat keys (`user_id`, `lang`,
+`flash`, ...) into the namespace, so sessions survive the upgrade.
+
 ### 5.1 Request and flow
 
 #### `redirect($url): void`
@@ -518,7 +553,7 @@ If the script URL is `.../modules/<slug>/index.php`, redirect to the app root (e
 
 #### `csrf_token(): string`
 
-32-byte hex token stored in `$_SESSION['csrf_token']`.
+32-byte hex token stored in the app's session namespace (`app_session_get('csrf_token')`).
 
 #### `csrf_field(): string`
 
@@ -566,11 +601,11 @@ If the key is missing, returns `$default`, or the key itself when `$default` is 
 
 #### `current_user(): ?array`
 
-Loads `SELECT * FROM opf_users WHERE id = ?` from `$_SESSION['user_id']`. Cached. `null` when not logged in.
+Loads `SELECT * FROM opf_users WHERE id = ?` from the session (`app_session_get('user_id')`). Cached. `null` when not logged in.
 
 #### `require_login(): void`
 
-If there is no user, redirect to `$_SESSION['landing_page']` (default `login`). Does not redirect when already on the login module file.
+If there is no user, redirect to `app_session_get('landing_page')` (default `login`). Does not redirect when already on the login module file.
 
 #### `require_level($level): void`
 
@@ -658,7 +693,7 @@ config('appname');        // 'OpenFrame'
 config('theme', 'light'); // default if missing
 ```
 
-Stored in `$_SESSION['openframe']`. `apppath`, `appurl` and `applogo` are refreshed every request.
+Stored in the session namespace under the `openframe` key. `apppath`, `appurl` and `applogo` are refreshed every request.
 
 ### `set_config($key, $value): void`
 
@@ -690,7 +725,7 @@ Do not prepend a slash yourself.
 
 ### `get_modules(): array`
 
-`slug => metadata`, sorted by `order` then `name`. Cached for the request. Resolves `name` / `description` / `group` from `*_ar` or `*_en` using `$_SESSION['lang']`.
+`slug => metadata`, sorted by `order` then `name`. Cached for the request. Resolves `name` / `description` / `group` from `*_ar` or `*_en` using `app_session_get('lang')`.
 
 ### `get_module($slug): ?array`
 

@@ -33,7 +33,7 @@ $activeSlug    = current_module();
             <!-- Ungrouped modules (no group specified) -->
             <?php foreach ($ungroupedModules as $slug => $module): ?>
                 <?php
-                if (isset($module['menu']) && $module['menu'] === false) {
+                if (isset($module['submenu']) && $module['submenu'] === false) {
                     continue;
                 }
                 $isActive = ($slug === $activeSlug);
@@ -50,9 +50,13 @@ $activeSlug    = current_module();
             <?php $groupIndex = 0; ?>
             <?php foreach ($moduleGroups as $groupName => $groupModules): ?>
                 <?php
+                if (!is_group_visible_in_submenu($groupName)) {
+                    continue;
+                }
+
                 $hasVisibleModules = false;
                 foreach ($groupModules as $slug => $module) {
-                    if (isset($module['menu']) && $module['menu'] === false) {
+                    if (isset($module['submenu']) && $module['submenu'] === false) {
                         continue;
                     }
                     $hasVisibleModules = true;
@@ -65,7 +69,7 @@ $activeSlug    = current_module();
                 $groupId = 'sidemenu-group-' . $groupIndex;
                 $groupHasActive = false;
                 foreach ($groupModules as $slug => $module) {
-                    if (isset($module['menu']) && $module['menu'] === false) {
+                    if (isset($module['submenu']) && $module['submenu'] === false) {
                         continue;
                     }
                     if ($slug === $activeSlug) {
@@ -89,7 +93,7 @@ $activeSlug    = current_module();
                          data-parent="#sidemenuWrap">
                         <?php foreach ($groupModules as $slug => $module): ?>
                             <?php
-                            if (isset($module['menu']) && $module['menu'] === false) {
+                            if (isset($module['submenu']) && $module['submenu'] === false) {
                                 continue;
                             }
                             $isActive = ($slug === $activeSlug);
@@ -114,8 +118,8 @@ $activeSlug    = current_module();
                         <i class="bi bi-person"></i>
                     </div>
                     <div>
-                        <div class="small fw-semibold"><?php echo e($_SESSION['user_name'] ?? 'User'); ?></div>
-                        <div class="text-muted small text-capitalize"><?php echo e($_SESSION['user_level'] ?? 'user'); ?></div>
+                        <div class="small fw-semibold"><?php echo e(app_session_get('user_name', 'User')); ?></div>
+                        <div class="text-muted small text-capitalize"><?php echo e(app_session_get('user_level', 'user')); ?></div>
                     </div>
                 </div>
                 <a class="dropdown-item d-flex align-items-center gap-2 text-decoration-none" href="<?php echo e(url('index.php?module=profile')); ?>">

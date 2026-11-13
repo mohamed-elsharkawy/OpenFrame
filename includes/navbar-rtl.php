@@ -30,7 +30,7 @@ $availableLangs = get_available_languages();
 ?>
 <!-- ===== Fixed Navbar (outside <main>) ===== -->
 <nav class="navbar navbar-expand-lg bg-body border-bottom shadow-sm of-navbar">
-    <div class="container">
+    <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center gap-2 fw-semibold" href="<?php echo e(url('')); ?>">
             <img src="<?php echo e($appLogo); ?>" alt="<?php echo e($appName); ?> logo" class="rounded" style="max-height:<?php echo $appLogoMaxHeight; ?>px; max-width:<?php echo $appLogoMaxWidth; ?>px;">
         </a>
@@ -65,6 +65,7 @@ $availableLangs = get_available_languages();
                     </li>
                 <?php endforeach; ?>
                 <?php foreach ($moduleGroups as $groupName => $groupModules): ?>
+                    <?php if (!is_group_visible_in_menu($groupName)) { continue; } ?>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-decoration-none" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-folder me-1"></i><?php echo e($groupName); ?>
@@ -94,11 +95,11 @@ $availableLangs = get_available_languages();
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" id="langDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-globe me-1"></i>
-                            <?php echo e($_SESSION['lang'] ?? 'en'); ?>
+                            <?php echo e(app_session_get('lang', OPENFRAME_DEFAULT_LANG)); ?>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="langDropdown">
                             <?php foreach ($availableLangs as $langCode): ?>
-                                <li><a class="dropdown-item<?php echo ($_SESSION['lang'] ?? 'en') === $langCode ? ' active' : ''; ?>"
+                                <li><a class="dropdown-item<?php echo app_session_get('lang', OPENFRAME_DEFAULT_LANG) === $langCode ? ' active' : ''; ?>"
                                         href="<?php echo e(url('index.php?module=' . rawurlencode($activeSlug) . '&lang=' . $langCode)); ?>"><?php echo e($langCode === 'ar' ? 'العربية' : 'English'); ?></a></li>
                             <?php endforeach; ?>
                         </ul>
@@ -109,10 +110,10 @@ $availableLangs = get_available_languages();
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-person-circle me-1"></i>
-                            <span class="d-none d-sm-inline"><?php echo e($_SESSION['user_name'] ?? 'User'); ?></span>
+                            <span class="d-none d-sm-inline"><?php echo e(app_session_get('user_name', 'User')); ?></span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="userDropdown">
-                            <li><h6 class="dropdown-header"><?php echo e(current_user()['full_name'] ?: ($_SESSION['user_name'] ?? '')); ?></h6></li>
+                            <li><h6 class="dropdown-header"><?php echo e(current_user()['full_name'] ?: app_session_get('user_name', '')); ?></h6></li>
                             <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?php echo e(url('index.php?module=profile')); ?>">
                                 <i class="bi bi-person me-1"></i><?php echo e(lang('common.profile', 'My Profile')); ?>
                             </a></li>

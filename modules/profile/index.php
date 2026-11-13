@@ -7,7 +7,7 @@
 require_framework();
 require_login();
 
-$currentUserId = (int) $_SESSION['user_id'] ?? 0;
+$currentUserId = (int) app_session_get('user_id', 0);
 $currentUser = db_row('SELECT * FROM ' . db_table('users') . ' WHERE id = ?', [$currentUserId]);
 
 if (!$currentUser) {
@@ -54,7 +54,3 @@ $messageType = '';
         </div>
     </div>
 </div>
-</div>
-</div>
-</body>
-</html>

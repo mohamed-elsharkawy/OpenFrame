@@ -39,11 +39,14 @@ function redirect($url)
  */
 function csrf_token()
 {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    $token = app_session_get('csrf_token');
+
+    if (!is_string($token) || $token === '') {
+        $token = bin2hex(random_bytes(32));
+        app_session_set('csrf_token', $token);
     }
 
-    return $_SESSION['csrf_token'];
+    return $token;
 }
 
 /**
@@ -83,11 +86,15 @@ function csrf_check()
  */
 function flash($type, $message)
 {
-    if (!isset($_SESSION['flash']) || !is_array($_SESSION['flash'])) {
-        $_SESSION['flash'] = array();
+    $messages = app_session_get('flash');
+
+    if (!is_array($messages)) {
+        $messages = array();
     }
 
-    $_SESSION['flash'][] = array('type' => $type, 'message' => $message);
+    $messages[] = array('type' => $type, 'message' => $message);
+
+    app_session_set('flash', $messages);
 }
 
 /**
@@ -99,7 +106,9 @@ function flash($type, $message)
  */
 function flash_render()
 {
-    if (empty($_SESSION['flash']) || !is_array($_SESSION['flash'])) {
+    $messages = app_session_get('flash');
+
+    if (empty($messages) || !is_array($messages)) {
         return '';
     }
 
@@ -107,7 +116,7 @@ function flash_render()
 
     $html = '';
 
-    foreach ($_SESSION['flash'] as $item) {
+    foreach ($messages as $item) {
         $type = isset($item['type']) && in_array($item['type'], array('success', 'danger', 'warning', 'info'), true)
             ? $item['type']
             : 'info';
@@ -120,7 +129,7 @@ function flash_render()
             . e($closeLabel) . '"></button></div>';
     }
 
-    unset($_SESSION['flash']);
+    app_session_forget('flash');
 
     return $html;
 }
@@ -252,7 +261,8 @@ function get_available_languages()
  * Load the language translations for the current request.
  *
  * The language is taken from ?lang= if provided, otherwise from the session,
- * falling back to 'en'. The result is cached for the request.
+ * falling back to OPENFRAME_DEFAULT_LANG (default 'ar'). The result is cached
+ * for the request.
  *
  * @return array  translation strings
  */
@@ -269,13 +279,14 @@ function load_lang()
     }
 
     $available = get_available_languages();
-    $langCode  = isset($_GET['lang']) ? $_GET['lang'] : ($_SESSION['lang'] ?? 'en');
+    $default   = defined('OPENFRAME_DEFAULT_LANG') ? OPENFRAME_DEFAULT_LANG : 'en';
+    $langCode  = isset($_GET['lang']) ? $_GET['lang'] : app_session_get('lang', $default);
 
     if (!in_array($langCode, $available, true)) {
-        $langCode = 'en';
+        $langCode = in_array($default, $available, true) ? $default : 'en';
     }
 
-    $_SESSION['lang'] = $langCode;
+    app_session_set('lang', $langCode);
 
     $langFile = defined('OPENFRAME_PATH')
         ? OPENFRAME_PATH . '/lang/' . $langCode . '.php'
@@ -424,11 +435,11 @@ function current_user()
         return $user;
     }
 
-    if (empty($_SESSION['user_id'])) {
+    if (empty(app_session_get('user_id'))) {
         return $user = null;
     }
 
-    $user = db_row('SELECT * FROM ' . db_table('users') . ' WHERE id = ?', [(int) $_SESSION['user_id']]);
+    $user = db_row('SELECT * FROM ' . db_table('users') . ' WHERE id = ?', [(int) app_session_get('user_id')]);
 
     return $user;
 }
@@ -447,7 +458,7 @@ function require_login()
         $isLoginPage = strpos($scriptName, 'modules/login/index.php') !== false;
 
         if (!$isLoginPage) {
-            $landing = $_SESSION['landing_page'] ?? 'login';
+            $landing = app_session_get('landing_page', 'login');
             redirect(url('index.php?module=' . $landing));
         }
     }
@@ -496,18 +507,18 @@ function require_any_level(array $levels)
  */
 function logout_user()
 {
-    unset(
-        $_SESSION['user_id'],
-        $_SESSION['user_level'],
-        $_SESSION['user_name'],
-        $_SESSION['otp_verified'],
-        $_SESSION['otp_pending_user_id'],
-        $_SESSION['otp_setup_secret'],
-        $_SESSION['otp_attempts']
+    app_session_forget(
+        'user_id',
+        'user_level',
+        'user_name',
+        'otp_verified',
+        'otp_pending_user_id',
+        'otp_setup_secret',
+        'otp_attempts'
     );
     session_regenerate_id(true);
 
-    $landing = $_SESSION['landing_page'] ?? 'login';
+    $landing = app_session_get('landing_page', 'login');
     redirect(url('index.php?module=' . $landing));
 }
 
@@ -658,15 +669,15 @@ function otp_finish_login(array $user)
 {
     session_regenerate_id(true);
 
-    $_SESSION['user_id']    = (int) $user['id'];
-    $_SESSION['user_level'] = $user['level'];
-    $_SESSION['user_name']  = $user['full_name'];
-    $_SESSION['otp_verified'] = 1;
+    app_session_set('user_id', (int) $user['id']);
+    app_session_set('user_level', $user['level']);
+    app_session_set('user_name', $user['full_name']);
+    app_session_set('otp_verified', 1);
 
-    unset(
-        $_SESSION['otp_pending_user_id'],
-        $_SESSION['otp_setup_secret'],
-        $_SESSION['otp_attempts']
+    app_session_forget(
+        'otp_pending_user_id',
+        'otp_setup_secret',
+        'otp_attempts'
     );
 }
 

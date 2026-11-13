@@ -15,7 +15,7 @@ if (!defined('OPENFRAME')) {
 
 $appName    = APP_NAME;
 $appVersion = APP_VERSION;
-$isRtl      = (($_SESSION['lang'] ?? 'en') === 'ar');
+$isRtl      = (app_session_get('lang', OPENFRAME_DEFAULT_LANG) === 'ar');
 ?>
 </main>
 
@@ -31,7 +31,7 @@ $isRtl      = (($_SESSION['lang'] ?? 'en') === 'ar');
 
         <!-- DevTools protection state -->
         <?php
-        $devtoolDisabled = !empty($_SESSION['devtool_disabled']);
+        $devtoolDisabled = !empty(app_session_get('devtool_disabled'));
         $user = current_user();
         $canToggleDevtool = $user && in_array($user['level'], ['superadmin', 'admin'], true);
         if ($canToggleDevtool): ?>
@@ -39,9 +39,9 @@ $isRtl      = (($_SESSION['lang'] ?? 'en') === 'ar');
                 <a href="<?php echo e(url('index.php?toggle_devtool=1' . (isset($_GET['module']) ? '&module=' . urlencode($_GET['module']) : ''))); ?>"
                    class="btn btn-sm btn-<?php echo $devtoolDisabled ? 'success' : 'warning'; ?>">
                     <i class="bi bi-<?php echo $devtoolDisabled ? 'shield-check' : 'shield-exclamation'; ?> me-1"></i>
-                    <?php echo $devtoolDisabled ? lang('devtool.enable', 'Enable DevTools') : lang('devtool.disable', 'Disable DevTools'); ?>
+                    <?php echo $devtoolDisabled ? lang('devtool.disable', 'Disable DevTools') : lang('devtool.enable', 'Enable DevTools'); ?>
                 </a>
-                <small class="text-muted ms-2"><?php echo $devtoolDisabled ? '(disabled for this session)' : '(active)'; ?></small>
+                <small class="text-muted ms-2"><?php echo $devtoolDisabled ? '(active)' : '(disabled for this session)'; ?></small>
             </div>
         <?php endif; ?>
 
@@ -49,7 +49,7 @@ $isRtl      = (($_SESSION['lang'] ?? 'en') === 'ar');
         <span class="small text-muted">
             &copy; <?php echo date('Y'); ?> <?php echo e($appName); ?>.
             <?php echo e(lang('app.created_by', 'Created by OpenFrame')); ?>.
-            <strong>OpenFrame</strong> v<?php echo e($appVersion); ?>.
+            by&nbsp;<strong>OpenFrame</strong> v<?php echo e($appVersion); ?>.
         </span>
 
         <!-- Links -->
@@ -59,7 +59,6 @@ $isRtl      = (($_SESSION['lang'] ?? 'en') === 'ar');
                class="text-muted text-decoration-none">
                 <i class="bi bi-github me-1"></i><?php echo e(lang('app.github', 'GitHub')); ?>
             </a>
-            <span class="mx-2">|</span>
         </span>
     </div>
 </footer>
@@ -134,7 +133,7 @@ $isRtl      = (($_SESSION['lang'] ?? 'en') === 'ar');
             return;
         }
         var $ = jQuery;
-        var placeholder = <?php echo json_encode(lang('common.actions', 'Select options')); ?>;
+        var placeholder = <?php echo json_encode(lang('common.select_options', 'Select options')); ?>;
         var dir = document.documentElement.getAttribute('dir') || 'ltr';
         $('.select2-multi').each(function () {
             var $el = $(this);
@@ -143,9 +142,22 @@ $isRtl      = (($_SESSION['lang'] ?? 'en') === 'ar');
             }
             $el.select2({
                 placeholder: placeholder,
-                allowClear: true,
                 width: '100%',
-                closeOnSelect: false,
+                closeOnSelect: false,   /* keep the dropdown open so several options can be picked */
+                dir: dir
+            });
+        });
+
+        /* Searchable single select (e.g. country picker) */
+        $('.select2-single').each(function () {
+            var $el = $(this);
+            if ($el.hasClass('select2-hidden-accessible')) {
+                return;
+            }
+            $el.select2({
+                placeholder: placeholder,
+                width: '100%',
+                allowClear: true,
                 dir: dir
             });
         });

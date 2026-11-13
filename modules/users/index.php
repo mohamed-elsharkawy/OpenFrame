@@ -26,7 +26,7 @@ if (is_post() && input('action') === 'delete') {
     csrf_check();
     $deleteId = (int) input('delete_id');
 
-    if ($deleteId > 0 && $deleteId !== (int) $_SESSION['user_id']) {
+    if ($deleteId > 0 && $deleteId !== (int) app_session_get('user_id', 0)) {
         db_delete('users', 'id = ?', [$deleteId]);
         $message = lang('msg.deleted', 'User deleted.');
         $messageType = 'success';
@@ -37,22 +37,31 @@ if (is_post() && input('action') === 'delete') {
     redirect(url('index.php?module=users'));
 }
 
-// Superadmin can reset OTP secret for any user (lost phone / re-enrol).
+// Superadmin can reset OTP for any user. Admins can reset OTP for
+// admins and users only — never for superadmins.
 if (is_post() && input('action') === 'reset_otp') {
     csrf_check();
     $actor   = current_user();
     $resetId = (int) input('reset_id');
 
-    if (!$actor || $actor['level'] !== 'superadmin') {
+    if (!$actor || !in_array($actor['level'], array('superadmin', 'admin'), true)) {
         flash('danger', lang('err.forbidden', 'You are not allowed to do that.'));
         redirect(url('index.php?module=users'));
     }
 
     $target = $resetId > 0
-        ? db_row('SELECT id FROM ' . db_table('users') . ' WHERE id = ?', array($resetId))
+        ? db_row('SELECT id, level FROM ' . db_table('users') . ' WHERE id = ?', array($resetId))
         : null;
 
     if ($target) {
+        $canReset = $actor['level'] === 'superadmin'
+            || ($actor['level'] === 'admin' && $target['level'] !== 'superadmin');
+
+        if (!$canReset) {
+            flash('danger', lang('err.forbidden', 'You are not allowed to do that.'));
+            redirect(url('index.php?module=users'));
+        }
+
         db_update('users', array(
             'otp_secret'  => null,
             'otp_enabled' => 0,
@@ -116,7 +125,7 @@ if (is_post() && input('action') === 'save_user') {
         ];
 
         if ($password !== '') {
-            $data['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
+            $data['password_hash'] = encrypt_password($password);
         }
 
         if ($isEdit) {
@@ -231,7 +240,8 @@ if ($editUser && !empty($editUser['permissions'])) {
 
                         <div class="mb-3">
                             <label class="form-label" for="userPermissions"><?php echo e(lang('common.actions', 'Permissions')); ?></label>
-                            <select id="userPermissions" class="form-select select2-multi" name="permissions[]" multiple="multiple" data-placeholder="<?php echo e(lang('common.actions', 'Select options')); ?>">
+                            <select id="userPermissions" class="form-select select2-multi" name="permissions[]" multiple="multiple" data-placeholder="<?php echo e(lang('common.select_options', 'Select options')); ?>">
+                                <option value=""></option>
                                 <?php foreach ($allPermissions as $permKey => $permLabel): ?>
                                     <option value="<?php echo e($permKey); ?>" <?php echo in_array($permKey, $userPermissions) ? 'selected' : ''; ?>>
                                         <?php echo e($permLabel); ?>
@@ -243,17 +253,19 @@ if ($editUser && !empty($editUser['permissions'])) {
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <a href="<?php echo e(url('index.php?module=users')); ?>" class="btn btn-outline-secondary"><?php echo e(lang('common.cancel', 'Cancel')); ?></a>
-                            <?php if (current_user()['level'] === 'superadmin'): ?>
+                            <?php if (current_user()['level'] === 'superadmin'
+                                || (current_user()['level'] === 'admin' && $editUser['level'] !== 'superadmin')): ?>
                                 <button class="btn btn-outline-warning" type="submit"
                                         form="resetOtpForm"
-                                        onclick="return confirm('<?php echo e(lang('otp.reset', 'Reset authenticator?')); ?>');">
-                                    <i class="bi bi-shield-x me-1"></i><?php echo e(lang('otp.reset', 'Reset authenticator')); ?>
+                                        onclick="return confirm('<?php echo e(lang('otp.reset', 'Reset OTP?')); ?>');">
+                                    <i class="bi bi-shield-x me-1"></i><?php echo e(lang('otp.reset', 'Reset OTP')); ?>
                                 </button>
                             <?php endif; ?>
                             <button class="btn btn-primary" type="submit"><?php echo e(lang('common.save', 'Save')); ?></button>
                         </div>
                     </form>
-                    <?php if (current_user()['level'] === 'superadmin'): ?>
+                    <?php if (current_user()['level'] === 'superadmin'
+                        || (current_user()['level'] === 'admin' && $editUser['level'] !== 'superadmin')): ?>
                         <form method="post" id="resetOtpForm" class="d-none">
                             <?php echo csrf_field(); ?>
                             <input type="hidden" name="action" value="reset_otp">
@@ -297,7 +309,8 @@ if ($editUser && !empty($editUser['permissions'])) {
 
                         <div class="mb-3">
                             <label class="form-label" for="userPermissionsCreate"><?php echo e(lang('common.actions', 'Permissions')); ?></label>
-                            <select id="userPermissionsCreate" class="form-select select2-multi" name="permissions[]" multiple="multiple" data-placeholder="<?php echo e(lang('common.actions', 'Select options')); ?>">
+                            <select id="userPermissionsCreate" class="form-select select2-multi" name="permissions[]" multiple="multiple" data-placeholder="<?php echo e(lang('common.select_options', 'Select options')); ?>">
+                                <option value=""></option>
                                 <?php foreach ($allPermissions as $permKey => $permLabel): ?>
                                     <option value="<?php echo e($permKey); ?>"><?php echo e($permLabel); ?></option>
                                 <?php endforeach; ?>
@@ -359,12 +372,13 @@ if ($editUser && !empty($editUser['permissions'])) {
                                         </td>
                                         <td><?php echo e($user['created_at']); ?></td>
                                         <td class="text-end">
-                                            <?php if (current_user()['level'] === 'superadmin'): ?>
-                                                <form method="post" class="d-inline" onsubmit="return confirm('<?php echo e(lang('otp.reset', 'Reset authenticator?')); ?>');">
+                                            <?php if (current_user()['level'] === 'superadmin'
+                                                || (current_user()['level'] === 'admin' && $user['level'] !== 'superadmin')): ?>
+                                                <form method="post" class="d-inline" onsubmit="return confirm('<?php echo e(lang('otp.reset', 'Reset OTP?')); ?>');">
                                                     <?php echo csrf_field(); ?>
                                                     <input type="hidden" name="action" value="reset_otp">
                                                     <input type="hidden" name="reset_id" value="<?php echo e($user['id']); ?>">
-                                                    <button class="btn btn-sm btn-outline-warning" type="submit" title="<?php echo e(lang('otp.reset', 'Reset authenticator')); ?>">
+                                                    <button class="btn btn-sm btn-outline-warning" type="submit" title="<?php echo e(lang('otp.reset', 'Reset OTP')); ?>">
                                                         <i class="bi bi-shield-x"></i>
                                                     </button>
                                                 </form>

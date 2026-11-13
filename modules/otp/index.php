@@ -6,18 +6,18 @@
 
 require_framework();
 
-if (current_user() && !empty($_SESSION['otp_verified']) && empty($_SESSION['otp_pending_user_id'])) {
+if (current_user() && !empty(app_session_get('otp_verified')) && empty(app_session_get('otp_pending_user_id'))) {
     redirect(url('index.php?module=home'));
 }
 
-$pendingId = (int) ($_SESSION['otp_pending_user_id'] ?? 0);
+$pendingId = (int) app_session_get('otp_pending_user_id', 0);
 if ($pendingId <= 0) {
     redirect(url('index.php?module=login'));
 }
 
 $user = db_find('users', $pendingId);
 if (!$user) {
-    unset($_SESSION['otp_pending_user_id'], $_SESSION['otp_setup_secret'], $_SESSION['otp_attempts']);
+    app_session_forget('otp_pending_user_id', 'otp_setup_secret', 'otp_attempts');
     redirect(url('index.php?module=login'));
 }
 
@@ -28,10 +28,10 @@ if (!otp_is_privileged($user)) {
 }
 
 if (input('action') === 'cancel') {
-    unset(
-        $_SESSION['otp_pending_user_id'],
-        $_SESSION['otp_setup_secret'],
-        $_SESSION['otp_attempts']
+    app_session_forget(
+        'otp_pending_user_id',
+        'otp_setup_secret',
+        'otp_attempts'
     );
     redirect(url('index.php?module=login'));
 }
@@ -40,10 +40,10 @@ $needsSetup = empty($user['otp_enabled']) || empty($user['otp_secret']);
 $error = '';
 
 if ($needsSetup) {
-    if (empty($_SESSION['otp_setup_secret'])) {
-        $_SESSION['otp_setup_secret'] = otp_generate_secret(16);
+    if (empty(app_session_get('otp_setup_secret'))) {
+        app_session_set('otp_setup_secret', otp_generate_secret(16));
     }
-    $secret = $_SESSION['otp_setup_secret'];
+    $secret = app_session_get('otp_setup_secret');
 } else {
     $secret = $user['otp_secret'];
 }
@@ -51,12 +51,12 @@ if ($needsSetup) {
 if (is_post() && input('action') === 'verify_otp') {
     csrf_check();
 
-    $attempts = (int) ($_SESSION['otp_attempts'] ?? 0);
+    $attempts = (int) app_session_get('otp_attempts', 0);
     if ($attempts >= 8) {
-        unset(
-            $_SESSION['otp_pending_user_id'],
-            $_SESSION['otp_setup_secret'],
-            $_SESSION['otp_attempts']
+        app_session_forget(
+            'otp_pending_user_id',
+            'otp_setup_secret',
+            'otp_attempts'
         );
         flash('danger', lang('otp.locked', 'Too many attempts. Sign in again.'));
         redirect(url('index.php?module=login'));
@@ -65,7 +65,7 @@ if (is_post() && input('action') === 'verify_otp') {
     $code = preg_replace('/\D+/', '', input('otp_code'));
 
     if (!otp_verify($secret, $code)) {
-        $_SESSION['otp_attempts'] = $attempts + 1;
+        app_session_set('otp_attempts', $attempts + 1);
         $error = lang('otp.invalid', 'Invalid or expired code. Try again.');
     } else {
         if ($needsSetup) {

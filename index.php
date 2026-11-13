@@ -1,4 +1,5 @@
 <?php
+session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('log_errors', 0);
@@ -39,7 +40,7 @@ if (isset($_GET['lang'])) {
     $requestedLang = $_GET['lang'];
     $available = get_available_languages();
     if (in_array($requestedLang, $available, true)) {
-        $_SESSION['lang'] = $requestedLang;
+        app_session_set('lang', $requestedLang);
     }
 }
 
@@ -62,15 +63,15 @@ try {
 if (isset($_GET['toggle_devtool'])) {
     $user = current_user();
     if ($user && in_array($user['level'], ['superadmin', 'admin'], true)) {
-        $_SESSION['devtool_disabled'] = empty($_SESSION['devtool_disabled']) ? 1 : 0;
+        app_session_set('devtool_disabled', empty(app_session_get('devtool_disabled')) ? 1 : 0);
     }
     $redirect = 'index.php';
     $params = array();
     if (isset($_GET['module'])) {
         $params['module'] = $_GET['module'];
     }
-    if (!empty($_SESSION['lang'])) {
-        $params['lang'] = $_SESSION['lang'];
+    if (!empty(app_session_get('lang'))) {
+        $params['lang'] = app_session_get('lang');
     }
     if (!empty($params)) {
         $redirect .= '?' . http_build_query($params);
@@ -84,36 +85,36 @@ if (isset($_GET['toggle_devtool'])) {
  * Regular users skip OTP. Pending OTP is not a full login.
  * ------------------------------------------------------------------ */
 $current = current_module();
-$otpPendingId = (int) ($_SESSION['otp_pending_user_id'] ?? 0);
+$otpPendingId = (int) app_session_get('otp_pending_user_id', 0);
 
 if ($otpPendingId > 0) {
     if ($current !== 'otp') {
         $params = array('module' => 'otp');
-        if (!empty($_SESSION['lang'])) {
-            $params['lang'] = $_SESSION['lang'];
+        if (!empty(app_session_get('lang'))) {
+            $params['lang'] = app_session_get('lang');
         }
         redirect(url('index.php?' . http_build_query($params)));
     }
 } else {
     $authed = current_user();
-    if ($authed && otp_is_privileged($authed) && empty($_SESSION['otp_verified'])) {
-        $_SESSION['otp_pending_user_id'] = (int) $authed['id'];
-        unset($_SESSION['user_id'], $_SESSION['user_level'], $_SESSION['user_name']);
+    if ($authed && otp_is_privileged($authed) && empty(app_session_get('otp_verified'))) {
+        app_session_set('otp_pending_user_id', (int) $authed['id']);
+        app_session_forget('user_id', 'user_level', 'user_name');
         $params = array('module' => 'otp');
-        if (!empty($_SESSION['lang'])) {
-            $params['lang'] = $_SESSION['lang'];
+        if (!empty(app_session_get('lang'))) {
+            $params['lang'] = app_session_get('lang');
         }
         redirect(url('index.php?' . http_build_query($params)));
     }
 
     /* Landing page redirect for unauthenticated users.
        Set landing_page to false to disable this behavior. */
-    $landing = $_SESSION['landing_page'] ?? 'login';
+    $landing = app_session_get('landing_page', 'login');
     if ($landing !== false && !$authed) {
         if ($current !== $landing) {
             $params = array('module' => $landing);
-            if (!empty($_SESSION['lang'])) {
-                $params['lang'] = $_SESSION['lang'];
+            if (!empty(app_session_get('lang'))) {
+                $params['lang'] = app_session_get('lang');
             }
             redirect(url('index.php?' . http_build_query($params)));
         }
