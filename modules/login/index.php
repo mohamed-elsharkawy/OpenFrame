@@ -2,9 +2,17 @@
 /**
  * OpenFrame — Module: Login (view)
  * Simple sign in / sign out with role-based access control.
+ * Action handling is delegated to modules/login/actions/.
  */
 
 require_framework();
+
+// Dispatch to action handler
+$action = input('action');
+if ($action !== '' && is_file(__DIR__ . '/actions/' . $action . '.php')) {
+    require __DIR__ . '/actions/' . $action . '.php';
+    exit;
+}
 
 // If already logged in, redirect to landing page
 if (current_user()) {
@@ -14,51 +22,8 @@ if (current_user()) {
     }
 }
 
-// Handle logout
-if (input('action') === 'logout') {
-    logout_user();
-}
-
-// Handle login form submission
 $error = '';
 $username = '';
-
-if (is_post() && input('action') === 'login') {
-    csrf_check();
-
-    $username = input('username');
-    $password = input('password');
-
-    if ($username === '' || $password === '') {
-        $error = lang('msg.wrong_credentials', 'Wrong username or password.');
-    } else {
-        $user = db_row('SELECT * FROM ' . db_table('users') . ' WHERE username = ?', [$username]);
-
-        if ($user && decrypt_password($user['password_hash']) === $password) {
-            session_regenerate_id(true);
-
-            if (otp_is_privileged($user)) {
-                app_session_forget('user_id', 'user_level', 'user_name', 'otp_verified');
-                app_session_set('otp_pending_user_id', (int) $user['id']);
-                app_session_set('otp_attempts', 0);
-                app_session_forget('otp_setup_secret');
-                redirect(url('index.php?module=otp'));
-            }
-
-            otp_finish_login($user);
-            flash('success', lang('msg.welcome_back', 'Welcome back.'));
-
-            $landing = app_session_get('landing_page', 'login');
-            if ($landing === 'login') {
-                $landing = 'home';
-            }
-
-            redirect(url('index.php?module=' . $landing));
-        } else {
-            $error = lang('msg.wrong_credentials', 'Wrong username or password.');
-        }
-    }
-}
 
 ?>
 <div class="row justify-content-center">

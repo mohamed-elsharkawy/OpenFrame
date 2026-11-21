@@ -21,5 +21,6 @@ return [
     'group'          => 'System Configuration',
     'menu'           => false,
     'submenu'        => false,
+    'system'         => true,
     'author'         => 'OpenFrame',
 ];

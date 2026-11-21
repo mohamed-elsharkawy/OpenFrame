@@ -93,7 +93,7 @@ if (!defined('APP_NAME')) {
     define('APP_NAME', 'OpenFrame');
 }
 if (!defined('APP_VERSION')) {
-    define('APP_VERSION', '1.0.0');
+    define('APP_VERSION', '1.9.0');
 }
 
 /* ------------------------------------------------------------------

@@ -54,6 +54,9 @@ $availableLangs = get_available_languages();
                     if (isset($module['menu']) && $module['menu'] === false) {
                         continue;
                     }
+                    if (!module_user_can_view($slug)) {
+                        continue;
+                    }
                     $isActive = ($slug === $activeSlug);
                     ?>
                     <li class="nav-item">
@@ -66,16 +69,28 @@ $availableLangs = get_available_languages();
                 <?php endforeach; ?>
                 <?php foreach ($moduleGroups as $groupName => $groupModules): ?>
                     <?php if (!is_group_visible_in_menu($groupName)) { continue; } ?>
+                    <?php
+                    $visibleGroupModules = array();
+                    foreach ($groupModules as $gSlug => $gModule) {
+                        if (isset($gModule['menu']) && $gModule['menu'] === false) {
+                            continue;
+                        }
+                        if (!module_user_can_view($gSlug)) {
+                            continue;
+                        }
+                        $visibleGroupModules[$gSlug] = $gModule;
+                    }
+                    if (empty($visibleGroupModules)) {
+                        continue;
+                    }
+                    ?>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-decoration-none" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-folder me-1"></i><?php echo e($groupName); ?>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-start">
-                            <?php foreach ($groupModules as $slug => $module): ?>
+                            <?php foreach ($visibleGroupModules as $slug => $module): ?>
                                 <?php
-                                if (isset($module['menu']) && $module['menu'] === false) {
-                                    continue;
-                                }
                                 $isActive = ($slug === $activeSlug);
                                 ?>
                                 <li><a class="dropdown-item<?php echo $isActive ? ' active' : ''; ?>"

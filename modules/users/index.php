@@ -2,6 +2,7 @@
 /**
  * OpenFrame — Module: Users (view)
  * Full CRUD for user management with role-based access control.
+ * Action handling is delegated to modules/users/actions/.
  *
  * Requires: config.php, helpers.php, db.php (loaded by index.php).
  */
@@ -18,131 +19,15 @@ try {
 // Require superadmin or admin to access this module
 require_any_level(['superadmin', 'admin']);
 
+// Dispatch to action handler
+$action = input('action');
+if ($action !== '' && is_file(__DIR__ . '/actions/' . $action . '.php')) {
+    require __DIR__ . '/actions/' . $action . '.php';
+    exit;
+}
+
 $message = '';
 $messageType = '';
-
-// Handle delete action
-if (is_post() && input('action') === 'delete') {
-    csrf_check();
-    $deleteId = (int) input('delete_id');
-
-    if ($deleteId > 0 && $deleteId !== (int) app_session_get('user_id', 0)) {
-        db_delete('users', 'id = ?', [$deleteId]);
-        $message = lang('msg.deleted', 'User deleted.');
-        $messageType = 'success';
-    } else {
-        $message = lang('msg.error', 'Cannot delete this user.');
-        $messageType = 'danger';
-    }
-    redirect(url('index.php?module=users'));
-}
-
-// Superadmin can reset OTP for any user. Admins can reset OTP for
-// admins and users only — never for superadmins.
-if (is_post() && input('action') === 'reset_otp') {
-    csrf_check();
-    $actor   = current_user();
-    $resetId = (int) input('reset_id');
-
-    if (!$actor || !in_array($actor['level'], array('superadmin', 'admin'), true)) {
-        flash('danger', lang('err.forbidden', 'You are not allowed to do that.'));
-        redirect(url('index.php?module=users'));
-    }
-
-    $target = $resetId > 0
-        ? db_row('SELECT id, level FROM ' . db_table('users') . ' WHERE id = ?', array($resetId))
-        : null;
-
-    if ($target) {
-        $canReset = $actor['level'] === 'superadmin'
-            || ($actor['level'] === 'admin' && $target['level'] !== 'superadmin');
-
-        if (!$canReset) {
-            flash('danger', lang('err.forbidden', 'You are not allowed to do that.'));
-            redirect(url('index.php?module=users'));
-        }
-
-        db_update('users', array(
-            'otp_secret'  => null,
-            'otp_enabled' => 0,
-            'updated_at'  => now(),
-        ), 'id = ?', array($resetId));
-        flash('success', lang('otp.reset_ok', 'Authenticator reset. The user must scan a new QR code at next sign-in.'));
-    } else {
-        flash('danger', lang('msg.error', 'User not found.'));
-    }
-    redirect(url('index.php?module=users'));
-}
-
-// Handle create/update
-if (is_post() && input('action') === 'save_user') {
-    csrf_check();
-
-    $username = input('username');
-    $fullName = input('full_name');
-    $password = input('password');
-    $level = input('level');
-    $permList = array();
-    if (isset($_POST['permissions']) && is_array($_POST['permissions'])) {
-        foreach ($_POST['permissions'] as $perm) {
-            if (is_string($perm) && $perm !== '') {
-                $permList[] = $perm;
-            }
-        }
-    }
-    $permissions = implode(',', $permList);
-
-    $errors = [];
-
-    if ($username === '') {
-        $errors[] = lang('common.name', 'Username') . ' ' . lang('common.required', 'is required.');
-    }
-    if ($fullName === '') {
-        $errors[] = lang('common.full_name', 'Full Name') . ' ' . lang('common.required', 'is required.');
-    }
-    if ($level === '') {
-        $errors[] = lang('common.level', 'Level') . ' ' . lang('common.required', 'is required.');
-    }
-
-    $userId = (int) input('user_id');
-    $isEdit = $userId > 0;
-
-    // Check username uniqueness
-    if ($username !== '') {
-        $existing = db_row('SELECT id FROM ' . db_table('users') . ' WHERE username = ? AND id <> ?', [$username, $userId]);
-        if ($existing) {
-            $errors[] = lang('common.name', 'Username') . ' ' . lang('msg.error', 'already exists.');
-        }
-    }
-
-    if (empty($errors)) {
-        $data = [
-            'username'    => $username,
-            'full_name'   => $fullName,
-            'level'       => $level,
-            'permissions' => $permissions !== '' ? $permissions : null,
-            'updated_at'  => now(),
-        ];
-
-        if ($password !== '') {
-            $data['password_hash'] = encrypt_password($password);
-        }
-
-        if ($isEdit) {
-            db_update('users', $data, 'id = ?', [$userId]);
-            $message = lang('msg.updated', 'User updated.');
-        } else {
-            $data['created_at'] = now();
-            db_insert('users', $data);
-            $message = lang('msg.created', 'User created.');
-        }
-        $messageType = 'success';
-        redirect(url('index.php?module=users'));
-    } else {
-        $message = implode('<br>', $errors);
-        $messageType = 'danger';
-    }
-}
 
 // Get user for edit
 $editUser = null;

@@ -268,6 +268,22 @@ function db_find($table, $id, $key = 'id')
 }
 
 /**
+ * Check whether a table exists in the database.
+ *
+ * @param string $table  table name without prefix (e.g. 'modules')
+ * @return bool
+ */
+function db_table_exists($table)
+{
+    $prefixed = DB_PREFIX . $table;
+    $row = db_row(
+        'SELECT COUNT(*) AS cnt FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?',
+        array(DB_NAME, $prefixed)
+    );
+    return $row !== null && (int) $row['cnt'] > 0;
+}
+
+/**
  * Does at least one row match?
  *
  *   if (db_exists('users', 'username = ?', array('sara'))) { ... }

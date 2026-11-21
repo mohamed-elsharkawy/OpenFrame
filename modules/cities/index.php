@@ -2,6 +2,7 @@
 /**
  * OpenFrame — Module: Cities (view)
  * CRUD for opf_cities (country_id, name_en, name_ar).
+ * Action handling is delegated to modules/cities/actions/.
  *
  * Requires: config.php, helpers.php, db.php (loaded by index.php).
  */
@@ -9,65 +10,15 @@
 require_framework();
 require_any_level(['superadmin', 'admin']);
 
+// Dispatch to action handler
+$action = input('action');
+if ($action !== '' && is_file(__DIR__ . '/actions/' . $action . '.php')) {
+    require __DIR__ . '/actions/' . $action . '.php';
+    exit;
+}
+
 $message = '';
 $messageType = '';
-
-/* ---------------- write actions ---------------- */
-if (is_post()) {
-    csrf_check();
-    $action = input('action');
-
-    if ($action === 'save') {
-        $id         = (int) input('id');
-        $countryId  = (int) input('country_id');
-        $nameEn     = input('name_en');
-        $nameAr     = input('name_ar');
-
-        $errors = array();
-        if ($countryId <= 0) {
-            $errors[] = lang('cities.country_required', 'Country is required.');
-        } elseif (!db_find('countries', $countryId)) {
-            $errors[] = lang('cities.country_invalid', 'Selected country does not exist.');
-        }
-        if ($nameEn === '') {
-            $errors[] = lang('cities.name_en_required', 'English name is required.');
-        }
-        if ($nameAr === '') {
-            $errors[] = lang('cities.name_ar_required', 'Arabic name is required.');
-        }
-
-        if (empty($errors)) {
-            $data = array(
-                'country_id' => $countryId,
-                'name_en'    => $nameEn,
-                'name_ar'    => $nameAr,
-                'updated_at' => now(),
-            );
-
-            if ($id > 0 && db_find('cities', $id)) {
-                db_update('cities', $data, 'id = ?', array($id));
-                flash('success', lang('cities.updated_ok', 'City updated.'));
-            } else {
-                $data['created_at'] = now();
-                db_insert('cities', $data);
-                flash('success', lang('cities.created_ok', 'City created.'));
-            }
-            redirect(url('index.php?module=cities'));
-        } else {
-            $message = implode('<br>', $errors);
-            $messageType = 'danger';
-        }
-    }
-
-    if ($action === 'delete') {
-        $id = (int) input('id');
-        $deleted = db_delete('cities', 'id = ?', array($id));
-        flash($deleted ? 'success' : 'warning', $deleted
-            ? lang('cities.deleted_ok', 'City deleted.')
-            : lang('msg.not_found', 'Not found.'));
-        redirect(url('index.php?module=cities'));
-    }
-}
 
 /* ---------------- read ---------------- */
 $editId  = (int) input('edit');
@@ -93,9 +44,9 @@ $cities  = db_rows(
        FROM (SELECT id FROM ' . db_table('cities') . ' c ' . $where . '
               ORDER BY c.country_id, c.name_en
              LIMIT ' . $perPage . ' OFFSET ' . (($pageNum - 1) * $perPage) . ') t
-       JOIN ' . db_table('cities') . ' c ON c.id = t.id
-       LEFT JOIN ' . db_table('countries') . ' co ON co.id = c.country_id
-      ORDER BY c.country_id, c.name_en',
+        JOIN ' . db_table('cities') . ' c ON c.id = t.id
+        LEFT JOIN ' . db_table('countries') . ' co ON co.id = c.country_id
+       ORDER BY c.country_id, c.name_en',
     $params
 );
 $page = array(

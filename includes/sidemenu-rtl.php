@@ -36,6 +36,9 @@ $activeSlug    = current_module();
                 if (isset($module['submenu']) && $module['submenu'] === false) {
                     continue;
                 }
+                if (!module_user_can_view($slug)) {
+                    continue;
+                }
                 $isActive = ($slug === $activeSlug);
                 ?>
                 <li class="of-sidemenu-item">
@@ -54,25 +57,24 @@ $activeSlug    = current_module();
                     continue;
                 }
 
-                $hasVisibleModules = false;
-                foreach ($groupModules as $slug => $module) {
-                    if (isset($module['submenu']) && $module['submenu'] === false) {
+                $visibleGroupModules = array();
+                foreach ($groupModules as $gSlug => $gModule) {
+                    if (isset($gModule['submenu']) && $gModule['submenu'] === false) {
                         continue;
                     }
-                    $hasVisibleModules = true;
-                    break;
+                    if (!module_user_can_view($gSlug)) {
+                        continue;
+                    }
+                    $visibleGroupModules[$gSlug] = $gModule;
                 }
-                if (!$hasVisibleModules) {
+                if (empty($visibleGroupModules)) {
                     continue;
                 }
                 $groupIndex++;
                 $groupId = 'sidemenu-group-' . $groupIndex;
                 $groupHasActive = false;
-                foreach ($groupModules as $slug => $module) {
-                    if (isset($module['submenu']) && $module['submenu'] === false) {
-                        continue;
-                    }
-                    if ($slug === $activeSlug) {
+                foreach ($visibleGroupModules as $gSlug => $gModule) {
+                    if ($gSlug === $activeSlug) {
                         $groupHasActive = true;
                     }
                 }
@@ -91,11 +93,8 @@ $activeSlug    = current_module();
                     <!-- Group items (collapsed by default) -->
                     <div class="sidemenu-group-items collapse" id="<?php echo $groupId; ?>" 
                          data-parent="#sidemenuWrap">
-                        <?php foreach ($groupModules as $slug => $module): ?>
+                        <?php foreach ($visibleGroupModules as $slug => $module): ?>
                             <?php
-                            if (isset($module['submenu']) && $module['submenu'] === false) {
-                                continue;
-                            }
                             $isActive = ($slug === $activeSlug);
                             ?>
                             <li class="of-sidemenu-item">

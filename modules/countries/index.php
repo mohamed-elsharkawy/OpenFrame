@@ -2,6 +2,7 @@
 /**
  * OpenFrame — Module: Countries (view)
  * CRUD for opf_countries (code, name_en, name_ar).
+ * Action handling is delegated to modules/countries/actions/.
  *
  * Requires: config.php, helpers.php, db.php (loaded by index.php).
  */
@@ -9,78 +10,15 @@
 require_framework();
 require_any_level(['superadmin', 'admin']);
 
+// Dispatch to action handler
+$action = input('action');
+if ($action !== '' && is_file(__DIR__ . '/actions/' . $action . '.php')) {
+    require __DIR__ . '/actions/' . $action . '.php';
+    exit;
+}
+
 $message = '';
 $messageType = '';
-
-/* ---------------- write actions ---------------- */
-if (is_post()) {
-    csrf_check();
-    $action = input('action');
-
-    if ($action === 'save') {
-        $id      = (int) input('id');
-        $code    = strtoupper(input('code'));
-        $nameEn  = input('name_en');
-        $nameAr  = input('name_ar');
-
-        $errors = array();
-        if ($code === '') {
-            $errors[] = lang('countries.code_required', 'Country code is required.');
-        } elseif (strlen($code) !== 2) {
-            $errors[] = lang('countries.code_length', 'Country code must be 2 letters.');
-        }
-        if ($nameEn === '') {
-            $errors[] = lang('countries.name_en_required', 'English name is required.');
-        }
-        if ($nameAr === '') {
-            $errors[] = lang('countries.name_ar_required', 'Arabic name is required.');
-        }
-
-        if (empty($errors) && $code !== '') {
-            $existing = db_row('SELECT id FROM ' . db_table('countries') . ' WHERE code = ? AND id <> ?', array($code, $id));
-            if ($existing) {
-                $errors[] = lang('countries.code_exists', 'Country code already exists.');
-            }
-        }
-
-        if (empty($errors)) {
-            $data = array(
-                'code'       => $code,
-                'name_en'    => $nameEn,
-                'name_ar'    => $nameAr,
-                'updated_at' => now(),
-            );
-
-            if ($id > 0 && db_find('countries', $id)) {
-                db_update('countries', $data, 'id = ?', array($id));
-                flash('success', lang('countries.updated_ok', 'Country updated.'));
-            } else {
-                $data['created_at'] = now();
-                db_insert('countries', $data);
-                flash('success', lang('countries.created_ok', 'Country created.'));
-            }
-            redirect(url('index.php?module=countries'));
-        } else {
-            $message = implode('<br>', $errors);
-            $messageType = 'danger';
-        }
-    }
-
-    if ($action === 'delete') {
-        $id = (int) input('id');
-        $cityCount = db_count('cities', 'country_id = ?', array($id));
-
-        if ($cityCount > 0) {
-            flash('danger', lang('countries.cannot_delete_has_cities', 'Cannot delete: country has cities.'));
-        } else {
-            $deleted = db_delete('countries', 'id = ?', array($id));
-            flash($deleted ? 'success' : 'warning', $deleted
-                ? lang('countries.deleted_ok', 'Country deleted.')
-                : lang('msg.not_found', 'Not found.'));
-        }
-        redirect(url('index.php?module=countries'));
-    }
-}
 
 /* ---------------- read ---------------- */
 $editId  = (int) input('edit');

@@ -53,10 +53,26 @@ function current_module()
     $requested = strtolower(preg_replace('/[^a-z0-9_\-]/i', '', $requested));
 
     if ($requested !== '') {
-        // Explicit request: only accept routes that really exist.
-        $current = isset($routes[$requested]) ? $requested : '';
+        // Explicit request: only accept routes that really exist and the user can view.
+        if (isset($routes[$requested])) {
+            $allowed = module_user_can_view($requested);
 
-        return $current;
+            // Guests have no permissions yet: allow the login/OTP flow and the
+            // configured landing module, otherwise the login page would redirect
+            // to itself forever.
+            if (!$allowed && current_user() === null) {
+                $landing = app_session_get('landing_page', 'login');
+                $allowed = in_array($requested, array('login', 'otp'), true)
+                    || ($landing !== false && $requested === $landing);
+            }
+
+            if ($allowed) {
+                $current = $requested;
+                return $current;
+            }
+        }
+
+        return '';
     }
 
     if (isset($routes['home'])) {

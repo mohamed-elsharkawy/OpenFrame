@@ -310,15 +310,22 @@ function load_lang()
  * @param string $default
  * @return string
  */
-function lang($key, $default = '')
+function lang($key, $default = '', array $params = array())
 {
     $translations = load_lang();
 
     if (isset($translations[$key])) {
-        return $translations[$key];
+        $text = $translations[$key];
+    } else {
+        $text = $default !== '' ? $default : $key;
     }
 
-    return $default !== '' ? $default : $key;
+    // Optional placeholder replacement: lang('key', 'default', ['{count}' => 5])
+    if (!empty($params)) {
+        $text = strtr($text, $params);
+    }
+
+    return $text;
 }
 
 /**
@@ -498,6 +505,80 @@ function require_any_level(array $levels)
     if (!$user || !in_array($user['level'], $levels, true)) {
         abort(403, 'You do not have permission to open this page.');
     }
+}
+
+/**
+ * Check whether the current user can view a module.
+ * Checks the opf_module_permissions table if it exists; otherwise
+ * falls back to the module's enabled flag.
+ *
+ * @param string $slug Module slug
+ * @return bool
+ */
+function module_user_can_view($slug)
+{
+    $user = current_user();
+    if (!$user) {
+        return false;
+    }
+
+    // Superadmins can view everything
+    if ($user['level'] === 'superadmin') {
+        return true;
+    }
+
+    // Check module permissions table if it exists
+    if (function_exists('db_table') && db_table_exists('module_permissions')) {
+        $perm = db_row(
+            'SELECT can_view FROM ' . db_table('module_permissions') .
+            ' WHERE user_id = ? AND module_slug = ? LIMIT 1',
+            [(int) $user['id'], $slug]
+        );
+        if ($perm !== null) {
+            return !empty($perm['can_view']);
+        }
+    }
+
+    // Fall back to module enabled flag
+    $mod = get_module($slug);
+    return $mod !== null && !empty($mod['enabled']);
+}
+
+/**
+ * Check whether the current user can edit a module.
+ *
+ * @param string $slug Module slug
+ * @return bool
+ */
+function module_user_can_edit($slug)
+{
+    $user = current_user();
+    if (!$user) {
+        return false;
+    }
+
+    // Superadmins can edit everything
+    if ($user['level'] === 'superadmin') {
+        return true;
+    }
+
+    // Admins can edit non-system modules they have can_edit for
+    if ($user['level'] === 'admin') {
+        if (function_exists('db_table') && db_table_exists('module_permissions')) {
+            $perm = db_row(
+                'SELECT can_edit FROM ' . db_table('module_permissions') .
+                ' WHERE user_id = ? AND module_slug = ? LIMIT 1',
+                [(int) $user['id'], $slug]
+            );
+            if ($perm !== null) {
+                return !empty($perm['can_edit']);
+            }
+        }
+        $mod = get_module($slug);
+        return $mod !== null && !empty($mod['enabled']) && empty($mod['system']);
+    }
+
+    return false;
 }
 
 /**

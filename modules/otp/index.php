@@ -2,9 +2,17 @@
 /**
  * OpenFrame — Module: OTP (view)
  * TOTP setup (QR) and verification for superadmin / admin only.
+ * Action handling is delegated to modules/otp/actions/.
  */
 
 require_framework();
+
+// Dispatch to action handler
+$action = input('action');
+if ($action !== '' && is_file(__DIR__ . '/actions/' . $action . '.php')) {
+    require __DIR__ . '/actions/' . $action . '.php';
+    exit;
+}
 
 if (current_user() && !empty(app_session_get('otp_verified')) && empty(app_session_get('otp_pending_user_id'))) {
     redirect(url('index.php?module=home'));
@@ -27,15 +35,6 @@ if (!otp_is_privileged($user)) {
     redirect(url('index.php?module=home'));
 }
 
-if (input('action') === 'cancel') {
-    app_session_forget(
-        'otp_pending_user_id',
-        'otp_setup_secret',
-        'otp_attempts'
-    );
-    redirect(url('index.php?module=login'));
-}
-
 $needsSetup = empty($user['otp_enabled']) || empty($user['otp_secret']);
 $error = '';
 
@@ -46,40 +45,6 @@ if ($needsSetup) {
     $secret = app_session_get('otp_setup_secret');
 } else {
     $secret = $user['otp_secret'];
-}
-
-if (is_post() && input('action') === 'verify_otp') {
-    csrf_check();
-
-    $attempts = (int) app_session_get('otp_attempts', 0);
-    if ($attempts >= 8) {
-        app_session_forget(
-            'otp_pending_user_id',
-            'otp_setup_secret',
-            'otp_attempts'
-        );
-        flash('danger', lang('otp.locked', 'Too many attempts. Sign in again.'));
-        redirect(url('index.php?module=login'));
-    }
-
-    $code = preg_replace('/\D+/', '', input('otp_code'));
-
-    if (!otp_verify($secret, $code)) {
-        app_session_set('otp_attempts', $attempts + 1);
-        $error = lang('otp.invalid', 'Invalid or expired code. Try again.');
-    } else {
-        if ($needsSetup) {
-            db_update('users', array(
-                'otp_secret'  => $secret,
-                'otp_enabled' => 1,
-                'updated_at'  => now(),
-            ), 'id = ?', array($pendingId));
-        }
-
-        otp_finish_login($user);
-        flash('success', lang('msg.welcome_back', 'Welcome back.'));
-        redirect(url('index.php?module=home'));
-    }
 }
 
 $issuer = config('appname', 'OpenFrame');

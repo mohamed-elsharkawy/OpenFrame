@@ -120,6 +120,71 @@ INSERT INTO `opf_genders` VALUES (1,'male','Male','ذكر','2026-11-10 01:29:53'
 UNLOCK TABLES;
 
 --
+-- Table structure for table `opf_module_permissions`
+--
+
+DROP TABLE IF EXISTS `opf_module_permissions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `opf_module_permissions` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int unsigned NOT NULL,
+  `module_slug` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `can_view` tinyint(1) NOT NULL DEFAULT '1',
+  `can_edit` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_module` (`user_id`,`module_slug`),
+  KEY `module_slug` (`module_slug`),
+  CONSTRAINT `opf_module_permissions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `opf_users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `opf_module_permissions_ibfk_2` FOREIGN KEY (`module_slug`) REFERENCES `opf_modules` (`slug`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `opf_module_permissions`
+--
+
+LOCK TABLES `opf_module_permissions` WRITE;
+/*!40000 ALTER TABLE `opf_module_permissions` DISABLE KEYS */;
+INSERT INTO `opf_module_permissions` VALUES (15,2,'users',0,0,'2026-11-21 21:14:43','2026-11-21 21:38:48'),(16,1,'users',0,0,'2026-11-21 21:14:43','2026-11-21 21:38:48'),(17,3,'users',0,1,'2026-11-21 21:14:43','2026-11-21 21:38:48'),(18,2,'appmodules',1,0,'2026-11-21 21:16:04','2026-11-21 19:35:12'),(19,1,'appmodules',1,1,'2026-11-21 21:16:04','2026-11-21 21:35:06'),(20,3,'appmodules',0,0,'2026-11-21 21:16:04','2026-11-21 21:35:06'),(21,2,'otp',1,0,'2026-11-21 21:21:29','2026-11-21 21:21:29'),(22,1,'otp',1,0,'2026-11-21 21:21:29','2026-11-21 21:21:29'),(23,3,'otp',0,0,'2026-11-21 21:21:29','2026-11-21 21:21:29');
+/*!40000 ALTER TABLE `opf_module_permissions` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `opf_modules`
+--
+
+DROP TABLE IF EXISTS `opf_modules`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `opf_modules` (
+  `slug` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_en` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_ar` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `icon` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT 'bi-puzzle',
+  `group_name` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT '1',
+  `system` tinyint(1) NOT NULL DEFAULT '0',
+  `module_order` int NOT NULL DEFAULT '100',
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`slug`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `opf_modules`
+--
+
+LOCK TABLES `opf_modules` WRITE;
+/*!40000 ALTER TABLE `opf_modules` DISABLE KEYS */;
+INSERT INTO `opf_modules` VALUES ('appmodules','App Modules','وحدات التطبيق','Manage installed modules, enable/disable and user permissions.','bi-gear','System Configuration',1,1,99,'2026-11-21 21:38:48'),('cities','Cities','المدن','Manage cities and link each one to its country.','bi-building','System Configuration',1,0,56,'2026-11-21 21:38:48'),('countries','Countries','الدول','Manage the list of countries (code, English and Arabic names).','bi-globe','System Configuration',1,0,55,'2026-11-21 21:38:48'),('home','Home','الرئيسية','OpenFrame landing page — welcomes the visitor and lists every installed module.','bi-house-door','',1,0,0,'2026-11-21 21:38:48'),('login','Login','تسجيل الدخول','Sign in / sign out with role-based access control (superadmin, admin, user).','bi-box-arrow-in-right','System Configuration',1,1,95,'2026-11-21 21:38:48'),('otp','OTP','رمز التحقق','Time-based one-time password verification for administrators.','bi-shield-lock','System Configuration',1,1,96,'2026-11-21 21:38:48'),('profile','Profile','الملف الشخصي','View and edit your personal profile information.','bi-person','System Configuration',1,0,10,'2026-11-21 21:38:48'),('users','Users','المستخدمون','Manage system users and their permission levels (superadmin, admin, user).','bi-people','System Configuration',1,0,50,'2026-11-21 21:38:48');
+/*!40000 ALTER TABLE `opf_modules` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `opf_users`
 --
 
@@ -161,4 +226,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-11-13 13:43:33
+-- Dump completed on 2026-11-21 21:39:00
